@@ -2,7 +2,7 @@
 {
     'name': "Chat Irina",
     'summary': """
-        Comunicación con el chat de Irina para mantener al paciente informado sobre su cita.
+        Comunicación con el chat de Irina para mantener al paciente informado sobre su cita
     """,
     'description': """
         Comunicación con el chat de Irina para mantener al paciente informado sobre su cita con diferentes condiciones para
