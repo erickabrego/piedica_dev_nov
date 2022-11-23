@@ -2,6 +2,8 @@ from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 import datetime
 import requests
+import logging
+_logger = logging.getLogger(__name__)
 
 class CalendarEvent(models.Model):
     _inherit = "calendar.event"
@@ -76,8 +78,12 @@ class CalendarEvent(models.Model):
                             "last_name": ""
                         }
                     }
-                    response = requests.post(url, data=message_data, headers=headers)
-                    print(response)
+                    try:
+                        response = requests.post(url, data=message_data, headers=headers)
+                        _logger.info("RESPUESTA IRINA")
+                        _logger.info(response)
+                    except Exception as error:
+                        _logger.info(error)
                 else:
                     raise ValidationError("El paciente debe de tener un número móvil para comunicarse con él mediante whatsapp.")
 
