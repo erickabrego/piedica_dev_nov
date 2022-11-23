@@ -20,7 +20,7 @@ class CalendarEvent(models.Model):
         for rec in self:
             url = f"https://app.irina.chat/api/v1/messages/send_template"
             token = self.env['ir.config_parameter'].sudo().get_param("irina.token")
-            headers = {'Authorization': f'Bearer {token}'}
+            headers = {'Content-Type': 'application/json','Authorization': f'Bearer {token}'}
             partners = rec.partner_ids.filtered(lambda line: line.x_studio_es_paciente)
             for partner in partners:
                 if partner.mobile:
@@ -44,15 +44,19 @@ class CalendarEvent(models.Model):
                                     },
                                     {
                                         "type": "text",
+                                        "text": "dr"
+                                    },
+                                    {
+                                        "type": "text",
                                         "text": "Mañana a la 1:00 PM"
                                     }
                                 ]
                             },
                             {
-                                'type': 'butonn',
-                                'sub_type': 'quick_reply',
-                                'index': '0',
-                                'parameters': [
+                                "type": 'button',
+                                "sub_type": 'quick_reply',
+                                "index": '0',
+                                "parameters": [
                                     {
                                         'type': 'payload',
                                         'payload': '/recordatorio_cita{\'event\':REMINDER\'}',
@@ -61,7 +65,7 @@ class CalendarEvent(models.Model):
                                 ]
                             },
                             {
-                                'type': 'butonn',
+                                'type': 'button',
                                 'sub_type': 'quick_reply',
                                 'index': '1',
                                 'parameters': [
@@ -79,9 +83,9 @@ class CalendarEvent(models.Model):
                         }
                     }
                     try:
-                        response = requests.post(url, data=message_data, headers=headers)
+                        response = requests.post(url, json=message_data, headers=headers)
                         _logger.info("RESPUESTA IRINA")
-                        _logger.info(response)
+                        _logger.info(response.content)
                     except Exception as error:
                         _logger.info(error)
                 else:
