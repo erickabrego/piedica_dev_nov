@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
+
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
-import datetime
 import requests
 import logging
 _logger = logging.getLogger(__name__)
@@ -8,27 +9,56 @@ _logger = logging.getLogger(__name__)
 class CalendarEvent(models.Model):
     _inherit = "calendar.event"
 
+    #---------------------------------------Métodos CRUD---------------------------------------------------------
+
     @api.model
     def create(self, vals_list):
         res = super(CalendarEvent, self).create(vals_list)
-        message = f"Su cita ha sido agendada con la fecha {res.start_date}"
-        res.send_irina_message(message=message)
+        #Se envia mensaje de cita agendada
+        res.send_irina_message(template="piedica_confirmacion_cita")
         return res
 
+    def write(self, vals):
+        res = super(CalendarEvent, self).write(vals)
+        for rec in self:
+            #Si la cita se confirma
+            if vals.get("x_studio_paciente_confirm_asistencia"):
+                if rec.x_studio_paciente_confirm_asistencia:
+                    #Se envia mensaje de confirmación
+                    rec.send_irina_message(template="piedica_confirmacion_cita")
+            # Si la cita se se cancela
+            if vals.get("x_studio_paciente_cancel_cita"):
+                if rec.x_studio_paciente_cancel_cita:
+                    # Se envia mensaje de no asistio
+                    rec.send_irina_message(template="piedica_confirmacion_cita")
+            # Si se asiste a la cita
+            if vals.get("x_studio_paciente_asisti_a_cita"):
+                if rec.x_studio_paciente_asisti_a_cita:
+                    # Se envia mensaje de asistio
+                    rec.send_irina_message(template="piedica_confirmacion_cita")
+        return res
 
-    def send_irina_message(self, message=None):
+    #--------------------------------------Métodos de clase------------------------------------------------------
+
+
+    #Envio de mensajes a Irina
+    def send_irina_message(self, template=None):
         for rec in self:
             url = f"https://app.irina.chat/api/v1/messages/send_template"
             token = self.env['ir.config_parameter'].sudo().get_param("irina.token")
+            waba = self.env['ir.config_parameter'].sudo().get_param("irina.waba")
+            number_id = self.env['ir.config_parameter'].sudo().get_param("irina.number_id")
             headers = {'Content-Type': 'application/json','Authorization': f'Bearer {token}'}
+            #Se obtiene el contacto del paciente o pacientes
             partners = rec.partner_ids.filtered(lambda line: line.x_studio_es_paciente)
             for partner in partners:
+                #Se verifica que el paciente tenga celular
                 if partner.mobile:
                     message_data = {
                         "to": f"{partner.mobile}",
-                        "waba": "106186548804243",
-                        "number_id": "106586885430106",
-                        "template_name": "piedica_confirmacion_cita",
+                        "waba": waba,
+                        "number_id": number_id,
+                        "template_name": template,
                         "template_language": "es_mx",
                         "components": [
                             {
@@ -36,46 +66,33 @@ class CalendarEvent(models.Model):
                                 "parameters": [
                                     {
                                         "type": "text",
-                                        "text": f"{message}"
+                                        "text": f"{partner.name}"
                                     },
                                     {
                                         "type": "text",
-                                        "text": "COAPA"
+                                        "text": f"{rec.x_studio_sucursal}"
                                     },
                                     {
                                         "type": "text",
-                                        "text": "dr"
+                                        "text": f"{rec.user_id.name}"
                                     },
                                     {
                                         "type": "text",
-                                        "text": "Mañana a la 1:00 PM"
+                                        "text": f"{rec.start.strftime('%d-%b-%Y %I.%M %p')}"
                                     }
                                 ]
                             },
                             {
                                 "type": 'button',
-                                "sub_type": 'quick_reply',
+                                "sub_type": 'url',
                                 "index": '0',
                                 "parameters": [
                                     {
-                                        'type': 'payload',
-                                        'payload': '/recordatorio_cita{\'event\':REMINDER\'}',
-                                        'text': 'Crear recordatorio cita'
+                                        'type': 'text',
+                                        'text': f'{rec.generate_address_url()}'
                                     }
                                 ]
                             },
-                            {
-                                'type': 'button',
-                                'sub_type': 'quick_reply',
-                                'index': '1',
-                                'parameters': [
-                                    {
-                                        'type': 'payload',
-                                        'payload': '/ubicacion_sucursal{\'event\':LOCATION\'}',
-                                        'text': 'Ver ubicación de sucursal'
-                                    }
-                                ]
-                            }
                         ],
                         "contact": {
                             "name": f"{partner.name}",
@@ -84,6 +101,8 @@ class CalendarEvent(models.Model):
                     }
                     try:
                         response = requests.post(url, json=message_data, headers=headers)
+                        _logger.info("DATOS ENVIADOS A IRINA")
+                        _logger.info(message_data)
                         _logger.info("RESPUESTA IRINA")
                         _logger.info(response.content)
                     except Exception as error:
@@ -93,4 +112,17 @@ class CalendarEvent(models.Model):
 
     def notify_irina_before(self, events):
         for event in events:
-            event.send_irina_message(f"Recuerda que tu cita es el {event.start_date}, lo esperamos.")
+            event.send_irina_message(template="piedica_confirmacion_cita")
+
+    def notify_tips(self):
+        for rec in self:
+            rec.send_irina_message(template="piedica_confirmacion_cita")
+
+    def generate_address_url(self):
+        maps_url = "https://www.google.com/maps?q="
+        location = self.appointment_type_id.location
+        if location:
+            maps_url += str(location).replace(" ","+")
+        return maps_url.strip()
+
+
