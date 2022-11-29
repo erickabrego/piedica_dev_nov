@@ -1,0 +1,31 @@
+# -*- coding: utf-8 -*-
+
+from odoo.http import Controller, request, route, Response
+
+class MainController(Controller):
+
+    #Endpoint para obtener ubicación desde irina
+    @route('/ubicacion_sucursal', type='json', auth='none')
+    def get_irina_location(self, **kwargs):
+        #Obtener ubicaciones
+        contact_id = kwargs.get("contact_id", None)
+        if contact_id:
+            event_id = request.env["calendar.event"].sudo().search([("x_contact_irina","=",contact_id)],limit=1)
+            if event_id:
+                data = {
+                    'status': 'success',
+                    'content': {
+                        'location': event_id.appointment_type_id.location
+                    }
+                }
+            else:
+                data = {
+                    'status': 'error',
+                    'message': f'No existe un evento que esté relacionado al id del contacto {contact_id}.'
+                }
+        else:
+            data = {
+                'status': 'error',
+                'message': f'Por favor de proporcionar el id del contacto.'
+            }
+        return data

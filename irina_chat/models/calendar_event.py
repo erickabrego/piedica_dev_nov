@@ -9,6 +9,8 @@ _logger = logging.getLogger(__name__)
 class CalendarEvent(models.Model):
     _inherit = "calendar.event"
 
+    x_contact_irina = fields.Char(string="Contacto irina")
+
     #---------------------------------------Métodos CRUD---------------------------------------------------------
 
     @api.model
@@ -101,6 +103,7 @@ class CalendarEvent(models.Model):
                     }
                     try:
                         response = requests.post(url, json=message_data, headers=headers)
+                        rec.x_contact_irina = response.get("contact_id") if response else False
                         _logger.info("DATOS ENVIADOS A IRINA")
                         _logger.info(message_data)
                         _logger.info("RESPUESTA IRINA")
@@ -120,7 +123,7 @@ class CalendarEvent(models.Model):
 
     def generate_address_url(self):
         maps_url = "https://www.google.com/maps?q="
-        location = self.appointment_type_id.location
+        location = self.appointment_type_id.location.replace(",","")
         if location:
             maps_url += str(location).replace(" ","+")
         return maps_url.strip()
