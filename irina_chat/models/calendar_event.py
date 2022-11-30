@@ -56,8 +56,9 @@ class CalendarEvent(models.Model):
             for partner in partners:
                 #Se verifica que el paciente tenga celular
                 if partner.mobile:
+                    mobile_number = rec.format_mobile_number(partner.mobile, partner)
                     message_data = {
-                        "to": f"{str(partner.mobile).replace(' ','')}",
+                        "to": f"{str(mobile_number).replace(' ','')}",
                         "waba": waba,
                         "number_id": number_id,
                         "template_name": template,
@@ -72,7 +73,7 @@ class CalendarEvent(models.Model):
                                     },
                                     {
                                         "type": "text",
-                                        "text": f"{rec.x_studio_sucursal}"
+                                        "text": f"{rec.x_studio_sucursal or rec.env.company.name}"
                                     },
                                     {
                                         "type": "text",
@@ -103,7 +104,7 @@ class CalendarEvent(models.Model):
                     }
                     try:
                         response = requests.post(url, json=message_data, headers=headers)
-                        content = response.content.decode('UTF-8')
+                        content = eval(response.content.decode('UTF-8'))
                         rec.x_contact_irina = content.get("contact_id") if content else False
                         _logger.info("DATOS ENVIADOS A IRINA")
                         _logger.info(message_data)
@@ -135,5 +136,17 @@ class CalendarEvent(models.Model):
             maps_url += str(location).replace(" ","+")
         maps_url = maps_url.translate(trans)
         return maps_url.strip()
+
+    def format_mobile_number(self, mobile, contact):
+        country_code = "52"
+        if contact and contact.country_id.phone_code:
+            country_code = contact.country_id.phone_code
+        if f"+{country_code}" in mobile:
+            mobile_number = mobile
+        else:
+            mobile_number = f"+{country_code}{mobile}"
+        return mobile_number
+
+
 
 
