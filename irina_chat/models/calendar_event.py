@@ -57,7 +57,7 @@ class CalendarEvent(models.Model):
                 #Se verifica que el paciente tenga celular
                 if partner.mobile:
                     message_data = {
-                        "to": f"{partner.mobile}",
+                        "to": f"{str(partner.mobile).replace(' ','')}",
                         "waba": waba,
                         "number_id": number_id,
                         "template_name": template,
@@ -103,7 +103,8 @@ class CalendarEvent(models.Model):
                     }
                     try:
                         response = requests.post(url, json=message_data, headers=headers)
-                        rec.x_contact_irina = response.get("contact_id") if response else False
+                        content = response.content.decode('UTF-8')
+                        rec.x_contact_irina = content.get("contact_id") if content else False
                         _logger.info("DATOS ENVIADOS A IRINA")
                         _logger.info(message_data)
                         _logger.info("RESPUESTA IRINA")
@@ -122,10 +123,17 @@ class CalendarEvent(models.Model):
             rec.send_irina_message(template="piedica_confirmacion_cita")
 
     def generate_address_url(self):
-        maps_url = "https://www.google.com/maps?q="
-        location = self.appointment_type_id.location.replace(",","")
+        #Eliminar las tildes de nuestra cadena
+        a, b = 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunAEIOUUN'
+        trans = str.maketrans(a, b)
+        #Iniciamos el query de nuestra url
+        maps_url = "?q="
+        #Obtenemos la dirección de la sucursal
+        location = self.appointment_type_id.location
+        location = "".join(ch for ch in location if ch.isalnum() or str(ch).isspace())
         if location:
             maps_url += str(location).replace(" ","+")
+        maps_url = maps_url.translate(trans)
         return maps_url.strip()
 
 
