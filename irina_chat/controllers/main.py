@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from odoo.http import Controller, request, route, Response
+import logging
+_logger = logging.getLogger(__name__)
 
 class MainController(Controller):
 
@@ -29,3 +31,14 @@ class MainController(Controller):
                 'message': f'Por favor de proporcionar el id del contacto.'
             }
         return data
+
+    #Endpoint para obtener ubicación desde irina
+    @route('/confirmar_cita_irina', type='json', auth='none')
+    def confirm_event_irina(self, **kwargs):
+        _logger.info(kwargs)
+        data = {
+            'status': 'success',
+            'message': 'Hecho'
+        }
+        return data
+

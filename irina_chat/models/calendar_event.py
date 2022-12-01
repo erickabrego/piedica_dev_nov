@@ -14,42 +14,28 @@ class CalendarEvent(models.Model):
 
     x_contact_irina = fields.Char(string="Contacto irina")
 
-    # ---------------------------------------Métodos CRUD---------------------------------------------------------
+    #---------------------------------------Métodos CRUD---------------------------------------------------------
 
     @api.model
     def create(self, vals_list):
         res = super(CalendarEvent, self).create(vals_list)
-        # Se envia mensaje de cita agendada
+        #Se envia mensaje de cita agendada
         res.send_irina_message(template="piedica_confirmacion_cita")
         return res
 
     def write(self, vals):
         res = super(CalendarEvent, self).write(vals)
         for rec in self:
-            # Si la cita se confirma
+            #Si la cita se confirma
             if vals.get("x_studio_paciente_confirm_asistencia"):
                 if rec.x_studio_paciente_confirm_asistencia:
-                    # Se envia mensaje de confirmación
+                    #Se envia mensaje de confirmación
                     rec.send_irina_message(template="piedica_cita_confirmada",parameters=1)
-            # # Si la cita se se cancela
-            # if vals.get("x_studio_paciente_cancel_cita"):
-            #     if rec.x_studio_paciente_cancel_cita:
-            #         # Se envia mensaje de no asistio
-            #         rec.send_irina_message(template="piedica_confirmacion_cita")
-            # # Si se asiste a la cita
-            # if vals.get("x_studio_paciente_asisti_a_cita"):
-            #     if rec.x_studio_paciente_asisti_a_cita:
-            #         # Se envia mensaje de asistio
-            #         rec.send_irina_message(template="piedica_confirmacion_cita")
         return res
 
-    # @api.onchange("x_studio_paciente_confirm_asistencia")
-    # def send_irina_confirm_template(self):
-    #     self.send_irina_message(template="piedica_cita_confirmada",parameters=1)
+    #--------------------------------------Métodos de clase------------------------------------------------------
 
-    # --------------------------------------Métodos de clase------------------------------------------------------
-
-    # Envio de mensajes a Irina
+    #Envio de mensajes a Irina
     def send_irina_message(self, template=None, parameters=4, buttons=1):
         for rec in self:
             url = f"https://app.irina.chat/api/v1/messages/send_template"
@@ -62,7 +48,7 @@ class CalendarEvent(models.Model):
             #Se obtiene el contacto del paciente o pacientes
             partners = rec.partner_ids.filtered(lambda line: line.x_studio_es_paciente)
             for partner in partners:
-                # Se verifica que el paciente tenga celular
+                #Se verifica que el paciente tenga celular
                 if partner.mobile:
                     mobile_number = rec.format_mobile_number(partner.mobile, partner)
                     components = [{
@@ -169,12 +155,12 @@ class CalendarEvent(models.Model):
             rec.send_irina_message(template="piedica_confirmacion_cita")
 
     def generate_address_url(self):
-        # Eliminar las tildes de nuestra cadena
+        #Eliminar las tildes de nuestra cadena
         a, b = 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunAEIOUUN'
         trans = str.maketrans(a, b)
-        # Iniciamos el query de nuestra url
+        #Iniciamos el query de nuestra url
         maps_url = "?q="
-        # Obtenemos la dirección de la sucursal
+        #Obtenemos la dirección de la sucursal
         location = self.appointment_type_id.location or self.location or self.env.company.partner_id.contact_address_complete
         location = "".join(ch for ch in location if ch.isalnum() or str(ch).isspace())
         if location:
