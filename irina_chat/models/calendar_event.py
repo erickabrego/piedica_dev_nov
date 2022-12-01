@@ -58,8 +58,8 @@ class CalendarEvent(models.Model):
             number_id = self.env['ir.config_parameter'].sudo().get_param("irina.number_id")
             headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
             user_tz = rec.user_id.tz
-            raise ValidationError(rec.start.astimezone(timezone(user_tz))
-            # Se obtiene el contacto del paciente o pacientes
+            #raise ValidationError(rec.start.astimezone(timezone(user_tz))
+            #Se obtiene el contacto del paciente o pacientes
             partners = rec.partner_ids.filtered(lambda line: line.x_studio_es_paciente)
             for partner in partners:
                 # Se verifica que el paciente tenga celular
@@ -86,7 +86,7 @@ class CalendarEvent(models.Model):
                         })
                         components[0]["parameters"].append({
                             "type": "text",
-                            "text": f"{rec.start.astimezone(timezone(user_tz).strftime('%d-%b-%Y %I.%M %p')}"
+                            "text": f"{rec.start.astimezone(timezone(user_tz)).strftime('%d-%b-%Y %I.%M %p')}"
                         })
 
                     if buttons == 1:
