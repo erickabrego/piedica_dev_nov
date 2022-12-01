@@ -214,15 +214,20 @@ class SaleOrder(models.Model):
     #Copiamos la orden de venta y se confirmar sin generar otra venta en crm
     def copy_error_order(self, kwargs):
         error_id = kwargs.get("error_id",None)
+        error_status = self.env["crm.status"].sudo().search([('code', '=', str(error_id))], limit=1)
         status_id = kwargs.get("estatus_crm",None)
         if error_id == 12:
             pricelist_id = self.env["product.pricelist"].sudo().search([('id','=',80)])
+            error_status = self.env["crm.status"].sudo().search([('code', '=', str(error_id))], limit=1)
         if not status_id:
             raise ValidationError("Favor de proporcionar el id estatus de crm.")
         else:
             crm_status = self.env["crm.status"].sudo().search([('code','=',str(status_id))],limit=1)
             if not crm_status:
                 raise ValidationError("No se encuentra en la base de datos el id proporcionado.")
+        if error_status:
+            self.sudo().write({'estatus_crm': error_status.id})
+            self.sudo().create_estatus_crm()
         sale_order_id = self.sudo().copy()
         branch_order = self.x_branch_order_id.sudo().copy()
         sale_order_id.x_branch_order_id = branch_order.id        
