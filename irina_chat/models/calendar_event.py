@@ -4,6 +4,7 @@ from odoo import api, fields, models
 from datetime import timedelta
 import pytz
 import logging
+import requests
 _logger = logging.getLogger(__name__)
 
 
@@ -53,9 +54,7 @@ class CalendarEvent(models.Model):
                     return
                 offset = rec.start.astimezone(pytz.timezone(appointment_tz)).utcoffset().total_seconds()
                 date_with_offset = rec.start + timedelta(seconds=offset)
-                #
-                # timee = rec.start - timedelta(hours=7)
-                # timee = timee.astimezone(timezone(rec.user_id.tz)).strftime('%d-%m-%Y %H:%M:%S')
+                
                 #Se obtiene el contacto del paciente o pacientes
                 partners = rec.partner_ids.filtered(lambda line: line.x_studio_es_paciente)
                 for partner in partners:
@@ -142,15 +141,14 @@ class CalendarEvent(models.Model):
                                 "last_name": ""
                             }
                         }
-                        try:
-                            return
-                            # response = requests.post(url, json=message_data, headers=headers)
-                            # content = eval(response.content.decode('UTF-8'))
-                            # rec.x_contact_irina = content.get("contact_id") if content else False
-                            # _logger.info("DATOS ENVIADOS A IRINA")
-                            # _logger.info(message_data)
-                            # _logger.info("RESPUESTA IRINA")
-                            # _logger.info(response.content)
+                        try:                            
+                            response = requests.post(url, json=message_data, headers=headers)
+                            content = eval(response.content.decode('UTF-8'))
+                            rec.x_contact_irina = content.get("contact_id") if content else False
+                            _logger.info("DATOS ENVIADOS A IRINA")
+                            _logger.info(message_data)
+                            _logger.info("RESPUESTA IRINA")
+                            _logger.info(response.content)
 
                         except Exception as error:
                             _logger.info(error)
