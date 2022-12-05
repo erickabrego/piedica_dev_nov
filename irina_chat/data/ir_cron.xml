@@ -8,7 +8,7 @@
             <field name="code">
 offset = datetime.datetime.now() + datetime.timedelta(hours=15)
 current_date = offset + datetime.timedelta(hours=9)
-events = env["calendar.event"].sudo().search([('x_24_hours_remainder_sent','=',False),("start",">=",offset.strftime("%d-%m-%Y")),("start","<=",current_date.strftime("%d-%m-%Y"))])
+events = env["calendar.event"].sudo().search([('x_24_hours_remainder_sent','=',False),("start","&gt;=",offset.strftime("%d-%m-%Y")),("start","&lt;=",current_date.strftime("%d-%m-%Y"))])
 action = model.notify_irina_day_before(events)
             </field>
             <field name="user_id" ref="base.user_root"/>
@@ -25,7 +25,7 @@ action = model.notify_irina_day_before(events)
             <field name="code">
 current_date = datetime.datetime.now() - datetime.timedelta(hours=8)
 date_offset = current_date + datetime.timedelta(hours=9)
-events = env["calendar.event"].sudo().search([('x_2_hours_remainder_sent','=',False),("start",">=",current_date.strftime("%d-%m-%Y")),("start","<=",date_offset.strftime("%d-%m-%Y"))])
+events = env["calendar.event"].sudo().search([('x_2_hours_remainder_sent','=',False),("start","&gt;=",current_date.strftime("%d-%m-%Y")),("start","&lt;=",date_offset.strftime("%d-%m-%Y"))])
 model.notify_irina_hours_before(events)
             </field>
             <field name="user_id" ref="base.user_root"/>
