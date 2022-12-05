@@ -13,7 +13,7 @@
     'version': '14.0.1',
     'depends': ['base','mrp','mrp_workorder'],
     'data': [
-        'views/mrp_routing_workcenter.xml'
+        'views/mrp_workcenter.xml'
     ],
     'license': 'AGPL-3'
 }
