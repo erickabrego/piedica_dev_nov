@@ -5,7 +5,6 @@ from odoo.exceptions import ValidationError
 import requests
 import logging
 from pytz import timezone
-
 _logger = logging.getLogger(__name__)
 
 
@@ -13,6 +12,8 @@ class CalendarEvent(models.Model):
     _inherit = "calendar.event"
 
     x_contact_irina = fields.Char(string="Contacto irina")
+    x_24_hours_remainder_sent = fields.Boolean(string="¿Recordatorio 24 hrs antes enviado?")
+    x_2_hours_remainder_sent = fields.Boolean(string="¿Recordatorio 2 hrs antes enviado?")
 
     #---------------------------------------Métodos CRUD---------------------------------------------------------
 
@@ -26,11 +27,14 @@ class CalendarEvent(models.Model):
     def write(self, vals):
         res = super(CalendarEvent, self).write(vals)
         for rec in self:
-            #Si la cita se confirma
             if vals.get("x_studio_paciente_confirm_asistencia"):
                 if rec.x_studio_paciente_confirm_asistencia:
                     #Se envia mensaje de confirmación
                     rec.send_irina_message(template="piedica_cita_confirmada",parameters=1)
+            if vals.get("x_not_attend"):
+                if rec.x_not_attend:
+                    #Se envia mensaje de inasistencia
+                    rec.send_irina_message(template="piedica_cita_inasistencia",parameters=1, buttons=0)
         return res
 
     #--------------------------------------Métodos de clase------------------------------------------------------
@@ -43,13 +47,13 @@ class CalendarEvent(models.Model):
             waba = self.env['ir.config_parameter'].sudo().get_param("irina.waba")
             number_id = self.env['ir.config_parameter'].sudo().get_param("irina.number_id")
             headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
-            user_tz = rec.user_id.tz
-            #raise ValidationError(rec.start.astimezone(timezone(user_tz))
+            user_tz = rec.user_id.tz or rec.env.user.tz
             #Se obtiene el contacto del paciente o pacientes
             partners = rec.partner_ids.filtered(lambda line: line.x_studio_es_paciente)
             for partner in partners:
                 #Se verifica que el paciente tenga celular
                 if partner.mobile:
+                    responsable = rec.x_studio_related_field_1ifsS or rec.user_id.name
                     mobile_number = rec.format_mobile_number(partner.mobile, partner)
                     components = [{
                             "type": "body",
@@ -68,11 +72,11 @@ class CalendarEvent(models.Model):
                         })
                         components[0]["parameters"].append({
                             "type": "text",
-                            "text": f"{rec.user_id.name}"
+                            "text": f"{responsable}"
                         })
                         components[0]["parameters"].append({
                             "type": "text",
-                            "text": f"{rec.start.astimezone(timezone(user_tz)).strftime('%d-%b-%Y %I.%M %p')}"
+                            "text": f"{rec.start.astimezone(timezone(rec.event_tz)).strftime('%d-%m-%Y %H:%M:%S')}"
                         })
 
                     if buttons == 1:
@@ -88,6 +92,8 @@ class CalendarEvent(models.Model):
                             ]
                         }
                         components.append(buttons_components)
+                    elif buttons == 0:
+                        pass
                     else:
                         buttons_components = {
                             "type": 'button',
