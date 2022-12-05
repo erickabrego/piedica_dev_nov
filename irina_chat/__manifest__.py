@@ -14,7 +14,6 @@
     'version': '15.0.1',
     'depends': ['base','calendar','website_calendar'],
     'data': [
-        # 'security/ir.model.access.csv',
         'data/ir_cron.xml',
         'data/ir_config_parameter.xml'
     ],

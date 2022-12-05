@@ -31,8 +31,8 @@ class CalendarEvent(models.Model):
                 if rec.x_studio_paciente_confirm_asistencia:
                     #Se envia mensaje de confirmación
                     rec.send_irina_message(template="piedica_cita_confirmada",parameters=1)
-            if vals.get("x_not_attend"):
-                if rec.x_not_attend:
+            if vals.get("x_studio_boolean_field_4vUm6"):
+                if rec.x_studio_boolean_field_4vUm6:
                     #Se envia mensaje de inasistencia
                     rec.send_irina_message(template="piedica_cita_inasistencia",parameters=1, buttons=0)
         return res
