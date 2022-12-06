@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -11,7 +12,7 @@ class CalendarEvent(models.Model):
     partner_ids = fields.Many2many(
         'res.partner', 'calendar_event_res_partner_rel',
         string='Attendees', default=False)
-    x_personal_schedule_appointment = fields.Selection(string="¿Agendo cita presencial?", selection=[("Sí","Sí"),("No","No")])
+    # x_personal_schedule_appointment = fields.Selection(string="¿Agendo cita presencial?", selection=[("Sí","Sí"),("No","No")])
 
     #Relaciona la oportunidad del contacto con la reuinión que se está creando
     @api.model
@@ -26,16 +27,23 @@ class CalendarEvent(models.Model):
     def write(self, values):
         res = super(CalendarEvent, self).write(values)
         for rec in self:
-            if values.get("x_studio_paciente_asisti_a_cita") and rec.x_studio_paciente_asisti_a_cita and rec.opportunity_id:
+            if values.get("x_studio_paciente_confirm_asistencia") and rec.x_studio_paciente_confirm_asistencia and rec.opportunity_id:
+                crm_stage = self.env["crm.stage"].sudo().search([("name","=","Agenda cita")],limit=1)
+                if crm_stage:
+                    rec.opportunity_id.stage_id = crm_stage.id
+            if values.get("x_studio_paciente_asisti_a_cita") and rec.x_studio_paciente_asisti_a_cita and rec.opportunity_id and not rec.x_studio_paciente_cancel_cita:
                 crm_stage = self.env["crm.stage"].sudo().search([("name","=","Asiste a cita")],limit=1)
                 if crm_stage:
                     rec.opportunity_id.stage_id = crm_stage.id
-            elif values.get("x_personal_schedule_appointment") and rec.x_personal_schedule_appointment == "Sí" and rec.opportunity_id and rec.opportunity_id.stage_id.name == "Agenda cita virtual":
-                crm_stage = self.env["crm.stage"].sudo().search([("name","=","Agenda cita")],limit=1)
-                rec.opportunity_id.stage_id = crm_stage.id
-            elif values.get("x_personal_schedule_appointment") and rec.x_personal_schedule_appointment == "No" and rec.opportunity_id and rec.opportunity_id.stage_id.name == "Agenda cita virtual":
-                crm_stage = self.env["crm.stage"].sudo().search([("name","=","Contactado")],limit=1)
-                rec.opportunity_id.stage_id = crm_stage.id
+            elif values.get("x_studio_paciente_asisti_a_cita") and rec.x_studio_paciente_asisti_a_cita and rec.opportunity_id and rec.x_studio_paciente_cancel_cita:
+                raise ValidationError("La cita ya se encuentra cancelada por el paciente, no es posible marcar como asistió.")
+            if values.get("x_studio_paciente_cancel_cita") and rec.x_studio_paciente_cancel_cita and rec.opportunity_id and not rec.x_studio_paciente_asisti_a_cita:
+                crm_stage = self.env["crm.stage"].sudo().search([("name","=","Cancela cita")],limit=1)
+                if crm_stage:
+                    rec.opportunity_id.stage_id = crm_stage.id
+            elif values.get("x_studio_paciente_cancel_cita") and rec.x_studio_paciente_cancel_cita and rec.opportunity_id and  rec.x_studio_paciente_asisti_a_cita:
+                raise ValidationError("El paciente ya asistio a su cita, no es posible marcar como cancelada.")            
+            
             if values.get("partner_ids"):
                 try:
                     rec.get_opportunity_partner()
@@ -57,31 +65,49 @@ class CalendarEvent(models.Model):
 
     def get_opportunity_partner(self):
         for rec in self:
-            if not rec.opportunity_id:
-                partners_opportunity = rec.partner_ids.sudo().filtered(lambda partner: partner.x_studio_enviar_a and partner.opportunity_ids.filtered(lambda opportunity: opportunity.stage_id.name in ["Agenda cita", "Agenda cita virtual"]))
-                partners_without = rec.partner_ids.sudo().filtered(lambda partner: partner.x_studio_enviar_a and partner.id != rec.env.user.partner_id.id and partner.opportunity_ids.sudo().filtered(lambda opportunity: opportunity.stage_id.name not in ["Agenda cita", "Agenda cita virtual"]))
-                if partners_opportunity:
-                    for partner in partners_opportunity:
-                        for opportunity in partner.opportunity_ids.sudo().filtered(lambda opportunity: opportunity.stage_id.name in ["Agenda cita", "Agenda cita virtual"]):
-                            rec["opportunity_id"] = opportunity.id
-                elif partners_without:
-                    for partner_without in partners_without:
-                        lead_type = partner_without.x_studio_enviar_a
-                        lead = {
-                            "name": f"{partner_without.name} oportunidad",
-                            "partner_id": partner_without.id,
-                            "email_from": partner_without.email_formatted,
-                            "phone": partner_without.phone,
-                            "user_id": partner_without.env.user.id,
-                            "expected_revenue": 0,
-                            "probability": 0.0,
-                            "company_id": rec.env.company.id
-                        }
-                        if lead_type == "Agenda Cita Presencial":
-                            stage = rec.env['crm.stage'].sudo().search([('name', '=', "Agenda cita")], limit=1)
-                            lead["stage_id"] = stage.id
-                        elif lead_type == "Agenda Cita Virtual":
-                            stage = rec.env['crm.stage'].sudo().search([('name', '=', "Agenda cita virtual")], limit=1)
-                            lead["stage_id"] = stage.id
-                        opportunity = rec.env["crm.lead"].sudo().create(lead)
-                        rec["opportunity_id"] = opportunity.id
+            stage_id = self.env["crm.stage"].sudo().search([("name", "=", "Agenda cita")], limit=1)
+            for partner_id in rec.partner_ids:
+                if partner_id:
+                    opportunity_ids = self.env["crm.lead"].sudo().search([("partner_id.id", "=", partner_id.id), (
+                    "stage_id.name", "in", ["Contactado", "Cancela cita"])])
+                    archived_opportunity = self.env["crm.lead"].sudo().search(
+                        [("partner_id.id", "=", partner_id.id), ("active", "=", False)])
+                    if opportunity_ids and stage_id:
+                        for opportunity_id in opportunity_ids:
+                            opportunity_id.stage_id = stage_id.id
+                            rec["opportunity_id"] = opportunity_id.id
+                            rec.opportunity_id.x_calendar_event = rec.id
+                    if archived_opportunity and stage_id:
+                        for archived_oppo in archived_opportunity:
+                            archived_oppo.stage_id = stage_id.id
+                            archived_oppo.active = True
+                            rec["opportunity_id"] = archived_opportunity.id
+                            rec.opportunity_id.x_calendar_event = rec.id
+
+    def open_default_lead(self):
+        view = self.env.ref('appointment_leads.default_lead_event_view_form')
+        partner_id = self.partner_ids.filtered(lambda partner: partner.x_studio_es_paciente)
+        notification = {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': ("Alerta de oportunidad"),
+                'message': "No hay un paciente dentro de los participantes del evento.",
+                'type': 'warning',
+                'next': {'type': 'ir.actions.act_window_close'},
+            }
+        }
+        if not partner_id:
+            return notification
+        return {
+            'name': 'Oportunidad del paciente',
+            'type': 'ir.actions.act_window',
+            'view_mode': 'form',
+            'res_model': 'default.lead.event',
+            'target': 'new',
+            'views': [[view.id, 'form']],
+            'context': dict(self._context,
+                            default_partner_id=partner_id[0].id if partner_id else False,
+                            default_event_id=self.id,
+            ),
+        }      

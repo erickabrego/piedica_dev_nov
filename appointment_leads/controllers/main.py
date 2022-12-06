@@ -92,3 +92,10 @@ class WebsiteCalendarController(WebsiteCalendar):
 
                     portal_wizard.action_apply()
         return res
+
+    @http.route(['/calendar/<model("calendar.appointment.type"):appointment_type>/appointment'], type='http', auth="public", website=True, sitemap=True)
+    def calendar_appointment(self, appointment_type=None, employee_id=None, timezone=None, failed=False, **kwargs):
+        res = super(WebsiteCalendarController, self).calendar_appointment(appointment_type, employee_id, timezone, failed, **kwargs)
+        x_studio_servicios_1 = dict(request.env['calendar.event'].sudo()._fields['x_studio_servicios_1'].selection)
+        res.qcontext.update({"servicios": x_studio_servicios_1})
+        return res
