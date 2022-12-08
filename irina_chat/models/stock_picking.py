@@ -17,7 +17,7 @@ class StockPicking(models.Model):
                         if type_customer == "sucursal":
                             template = self.generate_irina_template("piedica_plantillas_listas", 6)
                         elif type_customer == "paciente":
-                            template = self.generate_irina_template("piedica_plantillas_listas", 1)
+                            template = self.generate_irina_template("piedica_envio_plantillas", 1)
                         if template:
                             self._send_irina_message(template)
 
