@@ -26,7 +26,7 @@ class StockPicking(models.Model):
         return res
 
     def _identify_type_customer(self):
-        rule = self.env["branch.factory"].sudo().search([("partner_id.id","=",self.partner_id.id)])
+        rule = self.env["branch.factory"].sudo().search([("delivery_address.id","=",self.partner_id.id)])
         if rule and self.picking_type_id.code == "incoming":
             return "sucursal"
         elif self.partner_id.x_studio_es_paciente and self.picking_type_id.code == "outgoing":
