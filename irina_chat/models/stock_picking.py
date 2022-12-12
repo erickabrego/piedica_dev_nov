@@ -105,7 +105,7 @@ class StockPicking(models.Model):
         mobile = ""
         if type_customer == "sucursal":
             if self.sale_id:
-                  mobile = self._format_mobile_number(self.sale_id.partner_id.mobile, self.sale_id.partner_id)
+                  mobile = self._format_mobile_number(self.sale_id.partner_shipping_id.mobile, self.sale_id.partner_shipping_id)
         elif type_customer == "paciente":
             mobile = self._format_mobile_number(self.partner_id.mobile, self.partner_id)
         return mobile
