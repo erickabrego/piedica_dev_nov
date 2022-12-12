@@ -77,6 +77,18 @@ class StockPicking(models.Model):
                     "type": "text",
                     "text": f"{self.partner_id.phone or self.partner_id.mobile}"
                 })
+                buttons_components = {
+                                "type": 'button',
+                                "sub_type": 'url',
+                                "index": '0',
+                                "parameters": [
+                                    {
+                                        'type': 'text',
+                                        'text': f'{rec.generate_address_url()}'
+                                    }
+                                ]
+                            }
+                components.append(buttons_components)
             elif parameters == 1:
                 components[0]["parameters"].append({
                     "type": "text",
@@ -119,6 +131,20 @@ class StockPicking(models.Model):
         elif type_customer == "paciente":
             name = self.partner_id.name
         return name
+    
+    def generate_address_url(self):
+        #Eliminar las tildes de nuestra cadena
+        a, b = 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunAEIOUUN'
+        trans = str.maketrans(a, b)
+        #Iniciamos el query de nuestra url
+        maps_url = "?q="
+        #Obtenemos la dirección de la sucursal
+        location = self.env.company.partner_id.contact_address_complete
+        location = "".join(ch for ch in location if ch.isalnum() or str(ch).isspace())
+        if location:
+            maps_url += str(location).replace(" ", "+")
+        maps_url = maps_url.translate(trans)
+        return maps_url.strip()
 
 
     def _format_mobile_number(self, mobile, contact):
