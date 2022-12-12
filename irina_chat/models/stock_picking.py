@@ -84,7 +84,7 @@ class StockPicking(models.Model):
                                 "parameters": [
                                     {
                                         'type': 'text',
-                                        'text': f'{rec.generate_address_url()}'
+                                        'text': f'{self.generate_address_url()}'
                                     }
                                 ]
                             }
