@@ -123,6 +123,10 @@ class StockPicking(models.Model):
 
     def _format_mobile_number(self, mobile, contact):
         country_code = "52"
+        _logger.info("CONTACTO IRINA")  
+        _logger.info(contact)    
+        _logger.info("CELULAR IRINA")          
+        _logger.info(mobile)
         if contact and contact.country_id.phone_code:
             country_code = contact.country_id.phone_code
         if f"+{country_code}" in mobile:
