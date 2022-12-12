@@ -63,7 +63,7 @@ class StockPicking(models.Model):
                 })
                 components[0]["parameters"].append({
                     "type": "text",
-                    "text": f"{self.partner_id.contact_address_complete}"
+                    "text": f"{self.env.company.partner_id.contact_address_complete}"
                 })
                 components[0]["parameters"].append({
                     "type": "text",
