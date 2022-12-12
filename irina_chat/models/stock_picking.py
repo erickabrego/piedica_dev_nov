@@ -38,6 +38,8 @@ class StockPicking(models.Model):
 
     def generate_irina_template(self, template, parameters):
         mobile = self._get_mobile_partner_irina()
+        _logger.info("CELULAR")
+        _logger.info(mobile)
         if mobile:
             waba = self.env['ir.config_parameter'].sudo().get_param("irina.waba")
             number_id = self.env['ir.config_parameter'].sudo().get_param("irina.number_id")
