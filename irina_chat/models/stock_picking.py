@@ -13,6 +13,8 @@ class StockPicking(models.Model):
                 for rec in self:
                     if rec.state == "done":
                         type_customer = rec._identify_type_customer()
+                        _logger.info("Tipo de contacto IRINA")
+                        _logger.info(type_customer)
                         template = False
                         if type_customer == "sucursal":
                             template = self.generate_irina_template("piedica_plantillas_listas", 6)
@@ -91,6 +93,8 @@ class StockPicking(models.Model):
                     "last_name": ""
                 }
             }
+            _logger.info("IRINA TEMPLATE DATA")
+            _logger.info(template_send)
             return template_send
         return False
 
