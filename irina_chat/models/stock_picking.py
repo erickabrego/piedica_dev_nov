@@ -101,7 +101,7 @@ class StockPicking(models.Model):
         return False
 
     def _get_mobile_partner_irina(self):
-        type_customer = self._identify_type_customer
+        type_customer = self._identify_type_customer()
         mobile = ""
         if type_customer == "sucursal":
             if self.sale_id:
